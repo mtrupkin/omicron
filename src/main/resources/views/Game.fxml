@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.text.*?>
+<?import javafx.scene.canvas.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.*?>
+
+<GridPane fx:id="rootPane" alignment="TOP_CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1280.0" stylesheets="@Console.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+   <columnConstraints>
+      <ColumnConstraints hgrow="NEVER" minWidth="10.0" />
+      <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+   </columnConstraints>
+   <rowConstraints>
+      <RowConstraints minHeight="10.0" vgrow="NEVER" />
+      <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+   </rowConstraints>
+   <children>
+      <Pane fx:id="consolePane" maxHeight="-Infinity" maxWidth="-Infinity" styleClass="dark-background" GridPane.halignment="LEFT" GridPane.valignment="TOP" />
+      <VBox styleClass="dark" GridPane.columnIndex="1">
+         <children>
+            <GridPane alignment="CENTER" hgap="5.0" style="-fx-border-color: white;" vgap="5.0" GridPane.columnIndex="1">
+              <columnConstraints>
+                <ColumnConstraints halignment="RIGHT" hgrow="NEVER" minWidth="10.0" />
+                  <ColumnConstraints halignment="LEFT" hgrow="ALWAYS" minWidth="10.0" />
+              </columnConstraints>
+              <rowConstraints>
+                <RowConstraints minHeight="10.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" vgrow="SOMETIMES" />
+                  <RowConstraints minHeight="10.0" vgrow="SOMETIMES" />
+                  <RowConstraints minHeight="10.0" vgrow="SOMETIMES" />
+                  <RowConstraints minHeight="10.0" vgrow="NEVER" />
+              </rowConstraints>
+               <children>
+                  <Label text="Strength:" />
+                  <Label fx:id="strText" text="0" GridPane.columnIndex="1" />
+                  <Label text="Dexterity:" GridPane.rowIndex="1" />
+                  <Label fx:id="dexText" text="0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                  <Label text="Intellect:" GridPane.rowIndex="2" />
+                  <Label fx:id="intText" text="0" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                  <Label text="Actions:" GridPane.rowIndex="4" />
+                  <Label fx:id="actionsText" text="0" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                   <Label text="Hit Points:" GridPane.rowIndex="5" />
+                   <Label fx:id="hpText" text="0" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+               </children>
+               <padding>
+                  <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+               </padding>
+            </GridPane>
+            <TableView fx:id="trackerTbl" focusTraversable="false" prefHeight="200.0" style="-fx-border-color: white;" VBox.vgrow="ALWAYS">
+              <columns>
+                <TableColumn fx:id="nameCol" minWidth="-1.0" prefWidth="200.0" text="Name" />
+                <TableColumn fx:id="hpCol" prefWidth="75.0" text="HP" />
+              </columns>
+            </TableView>
+            <GridPane>
+              <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="50.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" percentWidth="25.0" prefWidth="100.0" />
+                  <ColumnConstraints halignment="RIGHT" hgrow="ALWAYS" minWidth="10.0" percentWidth="25.0" prefWidth="100.0" />
+              </columnConstraints>
+              <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+              </rowConstraints>
+               <children>
+                  <Label fx:id="infoText" />
+                  <Label fx:id="infoDescText" GridPane.columnIndex="1" />
+                  <Label fx:id="infoPosText" text="[0, 0]" GridPane.columnIndex="2" />
+               </children>
+            </GridPane>
+         </children>
+      </VBox>
+      <TilePane id="action-bar" prefHeight="200.0" prefWidth="200.0" style="-fx-border-color: white;" GridPane.columnSpan="2" GridPane.rowIndex="1">
+         <children>
+             <fx:define>
+                 <ToggleGroup fx:id="actionToggleGroup"/>
+             </fx:define>
+            <ToggleButton mnemonicParsing="false" toggleGroup="$actionToggleGroup">
+               <graphic>
+                   <SVGPath content="M22.727,18.242L4.792,27.208l8.966-8.966l-4.483-4.484l17.933-8.966l-8.966,8.966L22.727,18.242z" fill="WHITE" />
+               </graphic>
+            </ToggleButton>
+            <ToggleButton mnemonicParsing="false" toggleGroup="$actionToggleGroup">
+               <graphic>
+                   <SVGPath content="M25.06,13.719c-0.944-5.172-5.461-9.094-10.903-9.094v4c3.917,0.006,7.085,3.176,7.094,7.094c-0.009,3.917-3.177,7.085-7.094,7.093v4.002c5.442-0.004,9.959-3.926,10.903-9.096h4.69v-3.999H25.06zM20.375,15.719c0-3.435-2.784-6.219-6.219-6.219c-2.733,0-5.05,1.766-5.884,4.218H1.438v4.001h6.834c0.833,2.452,3.15,4.219,5.884,4.219C17.591,21.938,20.375,19.153,20.375,15.719z" fill="WHITE" />
+               </graphic>
+            </ToggleButton>
+            <ToggleButton mnemonicParsing="false" toggleGroup="$actionToggleGroup">
+               <graphic>
+                   <SVGPath content="M9.219,9.5c-2.733,0-5.05,1.766-5.884,4.218H1.438v4.001h1.897c0.833,2.452,3.15,4.219,5.884,4.219c3.435,0,6.219-2.784,6.219-6.219S12.653,9.5,9.219,9.5zM27.685,13.719c-0.944-5.172-5.461-9.094-10.903-9.094v4c3.917,0.006,7.085,3.176,7.094,7.094c-0.009,3.917-3.177,7.085-7.094,7.093v4.002c5.442-0.004,9.959-3.926,10.903-9.096h2.065v-3.999H27.685z" fill="WHITE" />
+               </graphic>
+            </ToggleButton>
+         </children>
+      </TilePane>
+
+   </children>
+</GridPane>
