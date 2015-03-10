@@ -29,6 +29,7 @@ abstract class Entity(currentHP: Option[Int] = None, currentAP: Option[Int] = No
   def maxAP = 2
 
   def move: Int = 4 + floor(dex / 3)
+  def range: Int = 4
 
   def melee: Combat = Combat((str + floor(dex/2) + floor(int/3)))
   def ranged: Combat = Combat((dex + floor(str/2) + floor(int/3)))

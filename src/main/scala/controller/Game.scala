@@ -2,17 +2,17 @@ package me.mtrupkin.controller
 
 import javafx.collections.FXCollections._
 import javafx.fxml.FXML
-import javafx.scene.control.{Label, TableColumn, TableView}
-import javafx.scene.layout.Pane
+import javafx.scene.control.{ToggleButton, Label, TableColumn, TableView}
+import javafx.scene.layout.{TilePane, Pane}
 import me.mtrupkin.control.ConsoleFx
 import me.mtrupkin.console._
 import me.mtrupkin.core.{Point, Points}
-import me.mtrupkin.game.model.{CombatTracker, Agent, World}
+import me.mtrupkin.game.model.{SVGIcons, CombatTracker, Agent, World}
 
 import scalafx.beans.property.StringProperty
-import scalafx.scene.{control => sfxc}
-import scalafx.scene.{layout => sfxl}
-import scalafx.scene.{input => sfxi}
+import scalafx.event.ActionEvent
+import scalafx.scene.paint.Color
+import scalafx.scene.{control => sfxc, layout => sfxl, input => sfxi, shape => sfxs}
 
 import scala.collection.JavaConversions._
 import scalafx.Includes._
@@ -38,31 +38,71 @@ trait Game { self: Controller =>
     @FXML var infoPosText: Label = _
     @FXML var consolePane: Pane = _
     @FXML var rootPane: Pane = _
+    @FXML var actionBar: TilePane = _
 
     var console: ConsoleFx = _
     var screen: Screen = _
+    val actionToggleGroup = new sfxc.ToggleGroup {
+      selectedToggle.onChange(
+        (_, oldValue, newValue) => {
+          def setActionOption(tbOpt: Option[Any], selected: Boolean): Unit = {
+            for {
+              tb <- tbOpt
+            } {
+              val id = tb.asInstanceOf[javafx.scene.control.ToggleButton].getId
+              tracker.actionOptions.find(_.name == id).get.selected = selected
+            }
+          }
+          setActionOption(Option(oldValue), false)
+          setActionOption(Option(newValue), true)
+        }
+      )
+    }
 
     def initialize(): Unit = {
       val consoleSize = tracker.world.tileMap.size
       console = new ConsoleFx(consoleSize)
       console.setStyle("-fx-border-color: white")
+      new sfxl.Pane(rootPane) {
+        filterEvent(sfxi.KeyEvent.Any) {
+          (event: sfxi.KeyEvent) => handleKeyPressed(event)
+        }
+      }
       new sfxl.Pane(console) {
         onMouseClicked = (e: sfxi.MouseEvent) => handleMouseClicked(e)
         onMouseMoved = (e: sfxi.MouseEvent) => handleMouseMove(e)
         onMouseExited = (e: sfxi.MouseEvent) => handleMouseExit(e)
       }
 
+      val toggleButtons = for {
+        actionOption <- tracker.actionOptions.toSeq
+        icon <- actionOption.icon
+        name = actionOption.name
+        svg = SVGIcons.svg(icon)
+      } yield {
+        val svgPath = new sfxs.SVGPath {
+          content = svg
+          fill = Color.WHITE
+        }
+        new sfxc.ToggleButton("", svgPath) {
+          prefWidth = 50
+          prefHeight = 35
+          toggleGroup = actionToggleGroup
+          id = name
+          onAction = {
+            e: ActionEvent =>
+              val tb = e.getTarget.asInstanceOf[javafx.scene.control.ToggleButton]
+              actionOption.selected = tb.selectedProperty.value
+          }
+        }
+      }
+      new sfxl.TilePane(actionBar) {
+        content = toggleButtons
+      }
       screen = Screen(consoleSize)
       consolePane.getChildren.clear()
       consolePane.getChildren.add(console)
       consolePane.setFocusTraversable(true)
-      new sfxl.Pane(rootPane) {
-        filterEvent(sfxi.KeyEvent.Any) {
-          (event: sfxi.KeyEvent) => handleKeyPressed(event)
-        }
-      }
-      
-
       trackerTbl.setPlaceholder(new Label)
       trackerTbl.setMouseTransparent(true)
 

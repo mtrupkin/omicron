@@ -114,16 +114,22 @@ class CombatTracker(val world: World) extends StateMachine  {
     if (line.forall(world.tileMap(_).move)) line else Nil
   }
 
-  val actionOptions = List(new AttackOption(this), new MoveOption(this))
+  val actionOptions = List(
+    new BurstAttackOption(this),
+    new AimAttackOption(this),
+    new AttackOption(this),
+    new MoveOption(this))
 
   def getAction(p: Point): Option[Action] = {
     def getAction(target: Point, actions: List[ActionOption]): Option[Action] = {
       actions match {
         case actionOption :: xs => {
-          actionOption.getAction(target) match {
-            case None => getAction(target, xs)
-            case action => action
-          }
+          if (actionOption.selected)
+            actionOption.getAction(target) match {
+              case None => getAction(target, xs)
+              case action => action
+            }
+          else getAction(target, xs)
         }
         case Nil => None
       }
