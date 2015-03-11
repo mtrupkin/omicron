@@ -7,7 +7,7 @@ import javafx.scene.layout.{TilePane, Pane}
 import me.mtrupkin.control.ConsoleFx
 import me.mtrupkin.console._
 import me.mtrupkin.core.{Point, Points}
-import me.mtrupkin.game.model.{SVGIcons, CombatTracker, Agent, World}
+import me.mtrupkin.game.model._
 
 import scalafx.beans.property.StringProperty
 import scalafx.event.ActionEvent
@@ -59,6 +59,8 @@ trait Game { self: Controller =>
       )
     }
 
+    var toggleButtons: Seq[(tracker.ActionOption, sfxc.ToggleButton)] = _
+
     def initialize(): Unit = {
       val consoleSize = tracker.world.tileMap.size
       console = new ConsoleFx(consoleSize)
@@ -74,7 +76,7 @@ trait Game { self: Controller =>
         onMouseExited = (e: sfxi.MouseEvent) => handleMouseExit(e)
       }
 
-      val toggleButtons = for {
+      toggleButtons = for {
         actionOption <- tracker.actionOptions.toSeq
         icon <- actionOption.icon
         name = actionOption.name
@@ -84,7 +86,7 @@ trait Game { self: Controller =>
           content = svg
           fill = Color.WHITE
         }
-        new sfxc.ToggleButton("", svgPath) {
+        val tb = new sfxc.ToggleButton("", svgPath) {
           prefWidth = 50
           prefHeight = 35
           toggleGroup = actionToggleGroup
@@ -95,9 +97,10 @@ trait Game { self: Controller =>
               actionOption.selected = tb.selectedProperty.value
           }
         }
+        (actionOption, tb)
       }
       new sfxl.TilePane(actionBar) {
-        content = toggleButtons
+        content = toggleButtons.map(_._2)
       }
       screen = Screen(consoleSize)
       consolePane.getChildren.clear()
@@ -132,8 +135,14 @@ trait Game { self: Controller =>
       tracker.render(screen)
 
       console.draw(screen)
-      if (tracker.end) {
 
+      for {
+        (actionOption, tb) <- toggleButtons
+      } {
+        tb.setDisable(!actionOption.ready)
+      }
+
+      if (tracker.end) {
         changeState(new OutroController)
       }
     }

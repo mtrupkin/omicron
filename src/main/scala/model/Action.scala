@@ -3,29 +3,11 @@ package me.mtrupkin.game.model
 import java.nio.file.{Files, Paths}
 
 import me.mtrupkin.core.Point
-import me.mtrupkin.pathfinding.{Dijkstra}
-
-import scala.io.Source
 
 /**
  * Created by mtrupkin on 1/17/2015.
  */
-trait Action {
-  def name: String
-}
 
-case class MoveAction(entity: Entity, target: Point, name: String = "Move") extends Action {
-  def complete(): Unit =  {
-    entity.ap -= 1
-  }
-}
-
-case class AttackAction(attacker: Entity, defender: Entity, name: String = "Attack") extends Action {
-  def complete(): Unit =  {
-    attacker.ap -= 1
-    Combat.attack(attacker.melee, defender, Combat.playerAttack)
-  }
-}
 
 object SVGIcons {
   import scala.collection.JavaConverters._
@@ -46,65 +28,109 @@ object SVGIcons {
   def svg(icon: String): String = iconMap.get(icon).get
 }
 
-trait ActionOption {
-  def name: String
-  def icon: Option[String]
-  var selected = false
-  def getAction(target: Point): Option[Action]
-}
+trait Actions {
+  self: CombatTracker =>
 
-object BasicActionOption {
-  def getAttack(tracker: CombatTracker, newTarget: Point, range: Int): Option[Action] = {
-    import tracker._
-    for {
-      a <- agents.find(a => a.position == newTarget)
-    }  {
-      val los = lineOfSight(a.position, player.position)
+  trait ActionOption {
+    def name: String
+    def icon: Option[String]
 
-      return if (los.length > 0 && los.length <= range) Some(new AttackAction(tracker.world.player, a)) else None
+    var selected = false
+    var ready = true
+    var target: Point = _
+    var cooldown = 0
+    var maxCooldown = 0
+
+    def entity: Entity
+    def canAct(target: Point): Boolean = { selected && ready && canPerformAction(target) }
+    def act(target: Point): Unit = {
+      this.target = target
+      performAction()
     }
 
-    None
+    def complete(): Unit = {
+      if (maxCooldown > 0){
+        ready = false
+        cooldown = maxCooldown
+      }
+      completeAction()
+    }
+
+    def endRound(): Unit = {
+      if (cooldown > 0) {
+        cooldown -= 1
+      }
+      if (cooldown == 0) ready = true
+    }
+
+    protected def canPerformAction(target: Point): Boolean
+    protected def performAction(): Unit
+    protected def completeAction(): Unit
+
+    def canAttack(target: Point, range: Int): Boolean = {
+      for {
+        a <- agents.find(a => a.position == target)
+      } {
+        val los = lineOfSight(a.position, entity.position)
+        return (los.length > 0 && los.length <= range)
+      }
+
+      false
+    }
+
+    def canMove(target: Point, range: Int): Boolean = {
+      val moves = pathFinder.moveCount(target, entity.position, range)
+      val path = pathFinder.path(target, entity.position)
+      ((moves > 0) && (moves <= entity.move) && (path != Nil) && agents.forall(_.position != target))
+    }
   }
 
-  def getMove(tracker: CombatTracker, newTarget: Point, range: Int): Option[Action] = {
-    import tracker._
-    val moves = tracker.pathFinder.moveCount(newTarget, player.position, range)
-    val path = tracker.pathFinder.path(newTarget, player.position)
-    if ((moves > 0) && (moves <= range) && (path != Nil) && agents.forall(_.position != newTarget))
-      Some(new MoveAction(tracker.world.player, newTarget))
-    else None
+  class MoveOption(val entity: Entity, val name: String = "Move") extends ActionOption {
+    val icon: Option[String] = None
+    selected = true
+
+    def canPerformAction(target: Point): Boolean = canMove(target, entity.move)
+    def performAction(): Unit = {}
+    def completeAction(): Unit =  {
+      entity.ap -= 1
+    }
   }
-}
 
-class MoveOption(val tracker: CombatTracker, val name: String = "Move") extends ActionOption {
-  val icon = None
-  selected = true
+  class AttackOption(val entity: Entity, val name: String = "Attack") extends ActionOption {
+    val icon: Option[String] = None
+    selected = true
 
-  def getAction(target: Point): Option[Action] = {
-    BasicActionOption.getMove(tracker, target, tracker.player.move)
+    var defender: Entity = _
+
+    def canPerformAction(target: Point): Boolean = canAttack(target, entity.range)
+
+    def performAction(): Unit = {
+      for {
+        a <- agents.find(a => a.position == target)
+      } {
+        defender = a
+      }
+    }
+
+    def completeAction(): Unit =  {
+      entity.ap -= 1
+      Combat.attack(entity.melee, defender, Combat.playerAttack)
+    }
   }
-}
 
-class AttackOption(val tracker: CombatTracker, val name: String = "Attack") extends ActionOption {
-  val icon = None
-  selected = true
+  class BurstAttackOption(entity: Entity) extends AttackOption(entity, "Burst Attack") {
+    override val icon = Some("lightning")
+    selected = false
+    maxCooldown = 1
 
-  def getAction(target: Point): Option[Action] = {
-    BasicActionOption.getAttack(tracker, target, tracker.player.range)
+    override def canPerformAction(target: Point): Boolean = canAttack(target, entity.range * 2)
   }
-}
 
-class BurstAttackOption(val tracker: CombatTracker, val name: String = "Burst Attack") extends ActionOption {
-  val icon = Some("lightning")
-  def getAction(target: Point): Option[Action] = {
-    BasicActionOption.getAttack(tracker, target, (tracker.player.range * 1).toInt)
-  }
-}
+  class AimAttackOption(entity: Entity) extends AttackOption(entity, "Aim Attack") {
+    override val icon = Some("arrow-lines")
+    selected = false
+    maxCooldown = 2
 
-class AimAttackOption(val tracker: CombatTracker, val name: String = "Aim Attack") extends ActionOption {
-  val icon = Some("arrow-lines")
-  def getAction(target: Point): Option[Action] = {
-    BasicActionOption.getAttack(tracker, target, tracker.player.range * 4)
+    override def canPerformAction(target: Point): Boolean = canAttack(target, entity.range * 5)
   }
 }

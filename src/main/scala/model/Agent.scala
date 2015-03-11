@@ -49,9 +49,9 @@ class Agent(
   currentHP: Option[Int] = None,
   currentAP: Option[Int] = None) extends Entity(currentHP, currentAP) {
 
-  def getAction(tracker: CombatTracker): Option[Action] = {
+  def getAction(tracker: CombatTracker): Option[tracker.ActionOption] = {
     val los = tracker.lineOfSight(tracker.world.player.position, position)
-    if (los != Nil) return Some(AttackAction(this, tracker.world.player)) else None
+    if (los != Nil) return Some(new tracker.AttackOption(this) { defender = tracker.world.player}) else None
   }
 }
 

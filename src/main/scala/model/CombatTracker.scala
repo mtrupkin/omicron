@@ -12,7 +12,7 @@ import scala.collection.mutable.ListBuffer
  * Created by mtrupkin on 12/19/2014.
  * World controller
  */
-class CombatTracker(val world: World) extends StateMachine  {
+class CombatTracker(val world: World) extends StateMachine with Actions {
   type StateType = ActionState
   def initialState: StateType = new InputAction()
 
@@ -78,8 +78,7 @@ class CombatTracker(val world: World) extends StateMachine  {
   def endRound(): Unit = {
     val entities = player :: agents.toList
     entities.foreach(_.endRound())
-
-    round += 1
+    actionOptions.foreach(_.endRound())
   }
 
   def enemyAction(): ActionState = {
@@ -90,18 +89,18 @@ class CombatTracker(val world: World) extends StateMachine  {
     new CompositeActionState(actions.flatten.map(getActionState(_)))
   }
 
-  def attack(attacker: Entity, defender: Entity, resolution: (Combat, Int) => Int = Combat.attack): Boolean = {
-    val lineOfSight = this.lineOfSight(attacker.position, defender.position)
-    if (lineOfSight != Nil) {
-      Combat.attack(attacker.melee, defender, resolution)
-      true
-    } else false
-  }
+//  def attack(attacker: Entity, defender: Entity, resolution: (Combat, Int) => Int = Combat.attack): Boolean = {
+//    val lineOfSight = this.lineOfSight(attacker.position, defender.position)
+//    if (lineOfSight != Nil) {
+//      Combat.attack(attacker.melee, defender, resolution)
+//      true
+//    } else false
+//  }
 
   // uses neighbors in addition to current tile
   def lineOfSight(p: Point, p0: Point): Seq[Point] = {
-    for( n <- p :: world.tileMap.size.neighbors(p, 1).toList ) {
-      val line = lineOfSightSingle(n, p0)
+    for( n <- p0 :: world.tileMap.size.neighbors(p0, 1).toList ) {
+      val line = lineOfSightSingle(p, p0)
       if (line != Nil) return line
     }
     Nil
@@ -115,20 +114,17 @@ class CombatTracker(val world: World) extends StateMachine  {
   }
 
   val actionOptions = List(
-    new BurstAttackOption(this),
-    new AimAttackOption(this),
-    new AttackOption(this),
-    new MoveOption(this))
+    new BurstAttackOption(player),
+    new AimAttackOption(player),
+    new AttackOption(player),
+    new MoveOption(player))
 
-  def getAction(p: Point): Option[Action] = {
-    def getAction(target: Point, actions: List[ActionOption]): Option[Action] = {
+  def getAction(p: Point): Option[ActionOption] = {
+    def getAction(target: Point, actions: List[ActionOption]): Option[ActionOption] = {
       actions match {
         case actionOption :: xs => {
-          if (actionOption.selected)
-            actionOption.getAction(target) match {
-              case None => getAction(target, xs)
-              case action => action
-            }
+          if (actionOption.canAct(target))
+            Some(actionOption)
           else getAction(target, xs)
         }
         case Nil => None
@@ -137,10 +133,10 @@ class CombatTracker(val world: World) extends StateMachine  {
     getAction(p, actionOptions)
   }
 
-  def getActionState(action: Action): ActionState = {
+  def getActionState(action: ActionOption): ActionState = {
     action match {
-      case move: MoveAction => new MoveState(move)
-      case attack: AttackAction => new AttackState(attack)
+      case move: MoveOption => new MoveState(move)
+      case attack: AttackOption => new AttackState(attack)
       case _ => ???
     }
   }
@@ -150,6 +146,7 @@ class CombatTracker(val world: World) extends StateMachine  {
 
     override def target(target: Point): Unit = {
       for(action <- getAction(target)) {
+        action.act(target)
         changeState(getActionState(action))
       }
     }
@@ -164,7 +161,7 @@ class CombatTracker(val world: World) extends StateMachine  {
     def renderValidPath(screen: Screen): Unit = {
       for (m <- mouse) {
         getAction(m) match {
-          case Some(move: MoveAction) => renderPath(screen, m)
+          case Some(move: MoveOption) => renderPath(screen, m)
           case _ =>
         }
       }
@@ -224,7 +221,7 @@ class CombatTracker(val world: World) extends StateMachine  {
     }
   }
 
-  class MoveState(val action: MoveAction) extends ActionState {
+  class MoveState(val action: MoveOption) extends ActionState {
     val p0 = action.entity.position
     val path = pathFinder.path(action.target, p0)
     var smoothPath = smoothPathPoints(p0, path, Nil)
@@ -244,8 +241,8 @@ class CombatTracker(val world: World) extends StateMachine  {
     def render(screen: Screen): Unit = {}
   }
 
-  class AttackState(val action: AttackAction) extends ActionState {
-    var path = lineOfSight(action.defender.position, action.attacker.position).toList
+  class AttackState(val action: AttackOption) extends ActionState {
+    var path = lineOfSight(action.defender.position, action.entity.position).toList
 
     var time = 0
     val rate = 300
@@ -266,7 +263,7 @@ class CombatTracker(val world: World) extends StateMachine  {
 
     def render(screen: Screen): Unit = {
       path match {
-        case p::ps => screen.write(p, 'Q')
+        case p::ps => screen.write(p, '*')
         case Nil =>
       }
     }
@@ -299,39 +296,39 @@ object InputAction {
 
 
 
-object Line {
-  /**
-   * Uses the Bresenham Algorithm to calculate all points on a line from p0 to p1.
-   * The iterator returns all points in the interval [start, end].
-   * @return the iterator containing all points on the line
-   */
-  protected def bresenham(p1: Point, p0: Point): Iterator[Point] = {
-    import scala.math.abs
-    val d = Point(abs(p1.x - p0.x), abs(p1.y - p0.y))
-
-    val sx = if (p0.x < p1.x) 1 else -1
-    val sy = if (p0.y < p1.y) 1 else -1
-
-    new Iterator[Point] {
-      var p = p0
-      var err = d.x - d.y
-
-      def next = {
-        val e2 = 2 * err
-        if (e2 > -d.y) {
-          err -= d.y
-          p = p.copy(x = p.x + sx)
-        }
-        if (e2 < d.x) {
-          err += d.x
-          p = p.copy(y = p.y + sy)
-        }
-        p
-      }
-      def hasNext = !(p == p1)
-    }
-  }
-}
+//object Line {
+//  /**
+//   * Uses the Bresenham Algorithm to calculate all points on a line from p0 to p1.
+//   * The iterator returns all points in the interval [start, end].
+//   * @return the iterator containing all points on the line
+//   */
+//  protected def bresenham(p1: Point, p0: Point): Iterator[Point] = {
+//    import scala.math.abs
+//    val d = Point(abs(p1.x - p0.x), abs(p1.y - p0.y))
+//
+//    val sx = if (p0.x < p1.x) 1 else -1
+//    val sy = if (p0.y < p1.y) 1 else -1
+//
+//    new Iterator[Point] {
+//      var p = p0
+//      var err = d.x - d.y
+//
+//      def next = {
+//        val e2 = 2 * err
+//        if (e2 > -d.y) {
+//          err -= d.y
+//          p = p.copy(x = p.x + sx)
+//        }
+//        if (e2 < d.x) {
+//          err += d.x
+//          p = p.copy(y = p.y + sy)
+//        }
+//        p
+//      }
+//      def hasNext = !(p == p1)
+//    }
+//  }
+//}
 object CombatTracker {
 
   /**
