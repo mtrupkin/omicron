@@ -9,12 +9,12 @@ import scala.collection.mutable
 /**
  * Created by mtrupkin on 1/2/2015.
  */
-class Dijkstra(val tileMap: TileMap) {
+class Dijkstra(val tileMap: TileMap, val size: Size) {
   protected case class Node(p: Point, weight: Int = 1, dist: Double = Double.MaxValue) extends Ordered[Node] {
     override def compare(o: Node): Int = (o.dist-dist).toInt
     override def toString: String = s"$p dist: $dist"
   }
-  protected val size = tileMap.size
+
   protected val nodes = new Matrix[Node](size)
   protected var start: Point = _
 
@@ -73,5 +73,5 @@ class Dijkstra(val tileMap: TileMap) {
     nodes(p).dist.toInt
   }
 
-  def path(p: Point, p0: Point): Seq[Point] = if (tileMap.size.in(p)) path(p, Nil) else Nil
+  def path(p: Point, p0: Point): Seq[Point] = if (size.in(p)) path(p, Nil) else Nil
 }

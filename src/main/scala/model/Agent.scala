@@ -28,7 +28,7 @@ abstract class Entity(currentHP: Option[Int] = None, currentAP: Option[Int] = No
   def maxHP = 1 + (str + dex + int) * 10
   def maxAP = 2
 
-  def move: Int = 4 + floor(dex / 3)
+  def move: Int = 6 + floor(dex / 3)
   def range: Int = 4
 
   def melee: Combat = Combat((str + floor(dex/2) + floor(int/3)))
@@ -63,28 +63,34 @@ class Player(
    currentHP: Option[Int] = None) extends Entity {
 }
 
+// Krellan and Kaldron
 object Entity {
-  def toEntity(sc: ScreenChar, p: Point): Option[Entity] = {
+  def toEntity(sc: ScreenChar, p: Point): Option[Agent] = {
     sc.c match {
       case 'T' => Some(new Agent("Turret", 'T', p))
-      case '@' => Some(new Player("Player", '@', p, Stats(str = 1)))
+      case 'R' => Some(new Agent("Robot", 'R', p))
+      case 'Z' => Some(new Agent("Zellan", 'Z', p))
+      case 'X' => Some(new Agent("Kaldron", 'K', p))
+      case 'Y' => Some(new Agent("Cyber Dragon", 'C', p))
       case _ => None
     }
   }
 
-  def toEntities(matrix: Seq[Seq[ScreenChar]]): (Player, Seq[Agent]) = {
-    var player = new Player("Player", '@', Point(1, 1), Stats(str = 1))
-    val agents = new ListBuffer[Agent]()
-
+  def toEntities(matrix: Seq[Seq[ScreenChar]]): Seq[Agent] = {
     for {
       (i, x) <- matrix.zipWithIndex
       (t, y) <- i.zipWithIndex
-    } toEntity(t, Point(x, y)) match {
-      case Some(a: Agent) => agents.append(a)
-      case Some(p: Player) => player = p
-      case _ =>
-    }
+      e <- toEntity(t, Point(x, y))
+    } yield e
+  }
 
-    (player, agents)
+  def toPlayer(matrix: Seq[Seq[ScreenChar]]): Player = {
+    val player = for {
+      (i, x) <- matrix.zipWithIndex
+      (t, y) <- i.zipWithIndex
+      if t.c == '@'
+    } yield new Player("Player", '@', Point(x, y), Stats(str = 1))
+
+    player.head
   }
 }

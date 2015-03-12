@@ -1,6 +1,6 @@
 package me.mtrupkin.pathfinding
 
-import me.mtrupkin.core.Point
+import me.mtrupkin.core.{Size, Point}
 import me.mtrupkin.game.model.{Agent, TileMap}
 
 import scala.Array._
@@ -9,7 +9,7 @@ import scala.collection.mutable
 /**
  * Created by mtrupkin on 12/31/2014.
  */
-class AStar(val tileMap: TileMap) {
+class AStar(val tileMap: TileMap, val size: Size) {
   class Node(val p: Point) extends Ordered[Node] {
     // path cost
     var cost = 0.0d
@@ -48,7 +48,7 @@ class AStar(val tileMap: TileMap) {
       s"$p open: $open closed: $closed cost: $cost heuristic: $heuristic"
     }
   }
-  val size = tileMap.size
+//  val size = tileMap.size
   val nodes = ofDim[Node](size.width, size.height)
   def nodes(p: Point): Node = nodes(p.x)(p.y)
   size.foreach(p => nodes(p.x)(p.y) = new Node(p))
@@ -115,7 +115,7 @@ class AStar(val tileMap: TileMap) {
             // the cost to get to this node is cost the current plus the movement
             // cost to reach this node. Note that the heursitic value is only used
             // in the sorted open list
-            val nextStepCost = current.cost + tileMap.moveCost(np)
+            val nextStepCost = current.cost + 1 // tileMap.moveCost(np)
             val neighbour = nodes(np)
 
             // if the new cost we've determined for this node is lower than

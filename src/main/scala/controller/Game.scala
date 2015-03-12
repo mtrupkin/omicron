@@ -4,6 +4,7 @@ import javafx.collections.FXCollections._
 import javafx.fxml.FXML
 import javafx.scene.control.{ToggleButton, Label, TableColumn, TableView}
 import javafx.scene.layout.{TilePane, Pane}
+import javafx.scene.text.Text
 import me.mtrupkin.control.ConsoleFx
 import me.mtrupkin.console._
 import me.mtrupkin.core.{Point, Points}
@@ -12,7 +13,7 @@ import me.mtrupkin.game.model._
 import scalafx.beans.property.StringProperty
 import scalafx.event.ActionEvent
 import scalafx.scene.paint.Color
-import scalafx.scene.{control => sfxc, layout => sfxl, input => sfxi, shape => sfxs}
+import scalafx.scene.{control => sfxc, layout => sfxl, input => sfxi, shape => sfxs, text => sfxt}
 
 import scala.collection.JavaConversions._
 import scalafx.Includes._
@@ -39,6 +40,7 @@ trait Game { self: Controller =>
     @FXML var consolePane: Pane = _
     @FXML var rootPane: Pane = _
     @FXML var actionBar: TilePane = _
+    @FXML var status: Text = _
 
     var console: ConsoleFx = _
     var screen: Screen = _
@@ -62,7 +64,7 @@ trait Game { self: Controller =>
     var toggleButtons: Seq[(tracker.ActionOption, sfxc.ToggleButton)] = _
 
     def initialize(): Unit = {
-      val consoleSize = tracker.world.tileMap.size
+      val consoleSize = tracker.world.viewPort.size
       console = new ConsoleFx(consoleSize)
       console.setStyle("-fx-border-color: white")
       new sfxl.Pane(rootPane) {
@@ -115,6 +117,11 @@ trait Game { self: Controller =>
       new sfxc.TableColumn(nameCol).cellValueFactory = { _.value.name }
       new sfxc.TableColumn(hpCol).cellValueFactory = { _.value.hp }
 
+
+      new sfxt.Text(status) {
+//        text = (0 to 100000).toString
+        wrappingWidth <== rootPane.widthProperty()
+      }
       timer.start()
     }
 
@@ -171,7 +178,7 @@ trait Game { self: Controller =>
         val target = tracker.agents.find(a => a.position == p)
         target match {
           case Some(t) => infoText.setText(t.name)
-          case None => infoText.setText(tracker.world.tileMap(p).name)
+          case None => infoText.setText(tracker.world.viewPort(p).name)
         }
       }
     }

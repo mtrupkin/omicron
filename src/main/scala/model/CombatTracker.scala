@@ -40,7 +40,7 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
 
   var mouse: Option[Point] = None
 
-  val pathFinder = new Dijkstra(world.tileMap)
+  val pathFinder = new Dijkstra(world.viewPort, world.viewPort.size)
 
   def agents: Seq[Agent] = world.agents.filter(_.hp >= 0)
   def player = world.player
@@ -99,8 +99,8 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
 
   // uses neighbors in addition to current tile
   def lineOfSight(p: Point, p0: Point): Seq[Point] = {
-    for( n <- p0 :: world.tileMap.size.neighbors(p0, 1).toList ) {
-      val line = lineOfSightSingle(p, p0)
+    for( n <- p0 :: world.viewPort.size.neighbors(p0, 1).toList ) {
+      val line = lineOfSightSingle(p, n)
       if (line != Nil) return line
     }
     Nil
@@ -110,7 +110,7 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
   protected def lineOfSightSingle(p: Point, p0: Point): Seq[Point] = {
     // TODO: optimization candidate
     val line = CombatTracker.bresenham(p, p0).toSeq
-    if (line.forall(world.tileMap(_).move)) line else Nil
+    if (line.forall(world.viewPort(_).move)) line else Nil
   }
 
   val actionOptions = List(
@@ -196,7 +196,7 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
   }
 
   def hasLineOfMovement(p: Point, p0: Point): Boolean = {
-    CombatTracker.bresenham(p, p0).forall(world.tileMap(_).move)
+    CombatTracker.bresenham(p, p0).forall(world.viewPort(_).move)
   }
 
   // returns smooth path up to point p0

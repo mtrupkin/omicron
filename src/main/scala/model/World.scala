@@ -4,7 +4,7 @@ import java.io._
 import java.nio.file.{StandardOpenOption, Path, Paths, Files}
 
 import me.mtrupkin.console.Screen
-import me.mtrupkin.core.{Point, Size}
+import me.mtrupkin.core.{Matrix, Point, Size}
 import play.api.libs.json._
 import rexpaint.RexPaintImage
 
@@ -12,10 +12,21 @@ import rexpaint.RexPaintImage
 /**
  * Created by mtrupkin on 12/19/2014.
  */
+class ViewPort(val size: Size, var origin: Point, levelMap: LevelMap) extends TileMap {
+  val levelName = levelMap.levelName
+
+  def render(screen: Screen): Unit =
+    size.foreach(p => screen(p) = this(p).sc)
+
+  def apply(p: Point): Tile = levelMap(p + origin)
+
+  def move(p: Point): Boolean = levelMap.move(p + origin)
+}
+
 class World (
   val agents: Seq[Agent],
   val player: Player,
-  var tileMap: TileMap,
+  val viewPort: ViewPort,
   var time: Long = 0)  {
 
   def update(elapsed: Int) {
@@ -23,7 +34,7 @@ class World (
   }
 
   def render(screen: Screen): Unit = {
-    tileMap.render(screen)
+    viewPort.render(screen)
 
     renderAgent(screen, player)
   }
@@ -48,11 +59,11 @@ object World {
     val json = Json.parse(is)
     val worldJS = Json.fromJson[WorldJS](json).get
     val tileMap = TileMap.load(worldJS.levelName)
-    new World(worldJS.agents.map(toAgent(_)), toPlayer(worldJS.player), tileMap, worldJS.time)
+    new World(worldJS.agents.map(toAgent(_)), toPlayer(worldJS.player), ???, worldJS.time)
   }
 
   def write(world: World): Unit = {
-    val worldJS = WorldJS(world.tileMap.levelName, world.agents.map(toAgentJS(_)), toPlayerJS(world.player), world.time)
+    val worldJS = WorldJS(world.viewPort.levelName, world.agents.map(toAgentJS(_)), toPlayerJS(world.player), world.time)
     val json = Json.toJson(worldJS)
 
     Files.createDirectories(saveDirectory)

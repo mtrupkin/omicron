@@ -2,13 +2,27 @@
     -fx-background-color: black;
 }
 
-.dark, .dark .label  {
+.dark, .dark .label {
     -fx-background-color: black;
     -fx-font-size: 11pt;
     -fx-font-family: "Segoe UI Semibold";
     -fx-text-fill: white;
+    -fx-fill: white;
 }
 
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+/*.scroll-pane {*/
+    /*-fx-background-color: black;*/
+/*}*/
+
+
+#status {
+    -fx-fill: white;
+    -fx-background-color: black;
+}
 #title-main {
     -fx-font-size: 24pt;
 }
@@ -17,9 +31,9 @@
     -fx-font-size: 18pt;
 }
 
-#action-bar {
-    -fx-background-color: black;
-}
+/*#action-bar {*/
+    /*-fx-background-color: black;*/
+/*}*/
 
 .toggle-button {
     -fx-pref-width: 50;

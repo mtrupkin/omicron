@@ -18,7 +18,8 @@ class ConsoleFx(val size: Size) extends Pane {
   setStyle("-fx-background-color: black;")
   val offsetX, offsetY = 1
 
-  val font = Font.font("Consolas", FontWeight.NORMAL, 19)
+  val font = Font.font("Consolas", FontWeight.NORMAL, 18)
+
   val charBounds = ConsoleFx.charBounds(font)
   val stacks = new Matrix[StackPane](size)
   val labels = new Matrix[Label](size)
@@ -82,6 +83,7 @@ object ConsoleFx {
     val fl = com.sun.javafx.tk.Toolkit.getToolkit.getFontLoader
 
     val metrics = fl.getFontMetrics(f)
+
     val fontWidth = fl.computeStringWidth(" ", f)
     (floor(fontWidth), floor(metrics.getLineHeight))
   }
