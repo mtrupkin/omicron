@@ -1,7 +1,7 @@
 package me.mtrupkin.pathfinding
 
 import me.mtrupkin.core.{Size, Point}
-import me.mtrupkin.game.model.{Agent, TileMap}
+import me.mtrupkin.game.model.{GameMap, Agent, GameMap$}
 
 import scala.Array._
 import scala.collection.mutable
@@ -9,7 +9,7 @@ import scala.collection.mutable
 /**
  * Created by mtrupkin on 12/31/2014.
  */
-class AStar(val tileMap: TileMap, val size: Size) {
+class AStar(val map: GameMap, val size: Size) {
   class Node(val p: Point) extends Ordered[Node] {
     // path cost
     var cost = 0.0d
@@ -61,7 +61,7 @@ class AStar(val tileMap: TileMap, val size: Size) {
 
   def search(agent: Agent, p: Point, maxSearchDistance: Int): Seq[Point] = {
     // cannot move to target
-    if (!tileMap.move(p)) return Nil
+    if (!map(p).move) return Nil
     val p0 = agent.position
     // already at target
     if (p == p0) return Nil
@@ -111,7 +111,7 @@ class AStar(val tileMap: TileMap, val size: Size) {
         } {
           // determine the location of the neighbour and evaluate it
           val np = Point(x + current.p.x, y + current.p.y)
-          if (tileMap.move(np)) {
+          if (map(np).move) {
             // the cost to get to this node is cost the current plus the movement
             // cost to reach this node. Note that the heursitic value is only used
             // in the sorted open list

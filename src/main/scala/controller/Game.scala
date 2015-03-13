@@ -10,6 +10,7 @@ import me.mtrupkin.console._
 import me.mtrupkin.core.{Point, Points}
 import me.mtrupkin.game.model._
 
+import scala.util.{Failure, Success, Try}
 import scalafx.beans.property.StringProperty
 import scalafx.event.ActionEvent
 import scalafx.scene.paint.Color
@@ -64,7 +65,7 @@ trait Game { self: Controller =>
     var toggleButtons: Seq[(tracker.ActionOption, sfxc.ToggleButton)] = _
 
     def initialize(): Unit = {
-      val consoleSize = tracker.world.viewPort.size
+      val consoleSize = tracker.view.size
       console = new ConsoleFx(consoleSize)
       console.setStyle("-fx-border-color: white")
       new sfxl.Pane(rootPane) {
@@ -159,27 +160,28 @@ trait Game { self: Controller =>
     }
 
     def handleMouseClicked(mouseEvent: sfxi.MouseEvent): Unit = {
-      for( p <- mouseToPoint(mouseEvent)) {
-        tracker.target(p)
+      for( s <- mouseToPoint(mouseEvent)) {
+        val w = tracker.view.toWorld(s)
+        tracker.target(w)
       }
     }
 
     def handleMouseMove(mouseEvent: sfxi.MouseEvent): Unit = {
-      for( p0 <- mouseToPoint(mouseEvent)) {
-        val p = tracker.world.viewPort.toWorld(p0)
-        infoPosText.setText(p)
-        tracker.mouse = Some(p)
+      for( s <- mouseToPoint(mouseEvent)) {
+        val w = tracker.view.toWorld(s)
+        infoPosText.setText(w)
+        tracker.mouse = Some(w)
 
-        val actionOpt = tracker.getAction(p)
+        val actionOpt = tracker.getAction(w)
         actionOpt match {
           case Some(action) => infoDescText.setText(action.name)
           case None => infoDescText.setText("")
         }
 
-        val target = tracker.agents.find(a => a.position == p)
+        val target = tracker.agents.find(a => a.position == w)
         target match {
           case Some(t) => infoText.setText(t.name)
-          case None => infoText.setText(tracker.world.viewPort(p).name)
+          case None => infoText.setText(tracker.view(s).name)
         }
       }
     }
@@ -215,8 +217,14 @@ trait Game { self: Controller =>
   def keyCodeToConsoleKey(event: sfxi.KeyEvent): ConsoleKey = {
     val modifier = Modifier(event.shiftDown, event.controlDown, event.altDown)
     val jfxName = event.code.name
-    val key = Key.withName(jfxName)
-    ConsoleKey(key, modifier)
+    val tryKey = Try {
+      Key.withName(jfxName)
+    }
+
+    tryKey match {
+      case Success(key) => ConsoleKey(key, modifier)
+      case Failure(ex) => ConsoleKey(Key.Undefined, modifier)
+    }
   }
 
   class AgentBean(agent: Agent) {

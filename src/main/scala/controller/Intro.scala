@@ -1,23 +1,17 @@
 package me.mtrupkin.controller
 
 
-import java.io.{FileWriter, Writer}
-import java.nio.file.{StandardOpenOption, OpenOption, Paths, Files}
 import javafx.event.ActionEvent
 import javafx.fxml.FXML
 import javafx.scene.control.Button
 import javafx.scene.layout.Pane
 
-import me.mtrupkin.console.{Modifiers, ConsoleKey}
-import me.mtrupkin.game.model.TileMap._
+import me.mtrupkin.console.{ConsoleKey, Modifiers}
+import me.mtrupkin.core.{Point, Points, Size}
 import me.mtrupkin.game.model._
-import rexpaint.RexPaintImage
-import me.mtrupkin.core.{Points, Point, Size}
 
-import scalafx.scene.{control => sfxc}
-import scalafx.scene.{layout => sfxl}
-import scalafx.scene.{input => sfxi}
 import scalafx.Includes._
+import scalafx.scene.{control => sfxc, input => sfxi, layout => sfxl}
 
 
 /**
@@ -42,8 +36,9 @@ trait Intro { self: Controller =>
 
     def handleContinueGame(event: ActionEvent) = {
       val world = World.read()
+      val (startLevel, _) = Tile.loadStartTile("start")
 
-      changeState(new GameController(new CombatTracker(world)))
+      changeState(new GameController(new CombatTracker(world, Size(startLevel.size.width*3, startLevel.size.height))))
     }
 
 
@@ -53,28 +48,24 @@ trait Intro { self: Controller =>
       // create world
       val levelPosition2 = Point(1,0)
       val levelPosition3 = Point(2,0)
-      val (startLevel, player) = TileMap.loadStartLevel("start")
-      val (level2, agents2) = TileMap.loadLevel("tile-2")
-      val (level3, agents3) = TileMap.loadLevel("tile-3")
+      val (startLevel, player) = Tile.loadStartTile("start")
+      val (level2, agents2) = Tile.loadTile("tile-2")
+      val (level3, agents3) = Tile.loadTile("tile-3")
 
       val levelSize = startLevel.size
-      val levelMap = new LevelMap("mission-1", levelSize)
-      levelMap.tileMaps(Points.Origin) = startLevel
-      levelMap.tileMaps(levelPosition2) = level2
-      levelMap.tileMaps(levelPosition3) = level3
+      val levelMap = new Level("mission-1", levelSize)
+      levelMap.tiles(Points.Origin) = startLevel
+      levelMap.tiles(levelPosition2) = level2
+      levelMap.tiles(levelPosition3) = level3
 
-      val viewPort = new ViewPort(Size(levelSize.width * 3, levelSize.height), Points.Origin, levelMap)
+      levelMap.agents = levelMap.toWorldAgent(levelPosition2, agents2) ++ levelMap.toWorldAgent(levelPosition3, agents3)
 
-
-
-      val agents = levelMap.toGlobalAgent(levelPosition2, agents2) ++ levelMap.toGlobalAgent(levelPosition3, agents3)
-
-      val world = new World(agents, player, viewPort)
+      val world = new World(player, levelMap)
 
       World.write(world)
 
-
-      changeState(new GameController(new CombatTracker(world)))
+      val viewSize = Size(levelSize.width * 3, levelSize.height)
+      changeState(new GameController(new CombatTracker(world, viewSize)))
     }
 
     def handleOptions(event: ActionEvent) = {

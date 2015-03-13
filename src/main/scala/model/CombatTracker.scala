@@ -1,7 +1,7 @@
 package me.mtrupkin.game.model
 
 import me.mtrupkin.console.{Colors, RGB, ScreenChar, Screen}
-import me.mtrupkin.core.{StateMachine, Size, Point}
+import me.mtrupkin.core.{Points, StateMachine, Size, Point}
 import me.mtrupkin.pathfinding.{Dijkstra, AStar}
 
 import scala.collection.immutable.List
@@ -12,7 +12,29 @@ import scala.collection.mutable.ListBuffer
  * Created by mtrupkin on 12/19/2014.
  * World controller
  */
-class CombatTracker(val world: World) extends StateMachine with Actions {
+class View(val tileMap: GameMap, val size: Size, var origin: Point) extends GameMap {
+  private def toScreen(w: Point): Point = w - origin
+  def toWorld(s: Point): Point = s + origin
+  // screen coordinates
+  def apply(s: Point): Square = tileMap(toWorld(s))
+
+  def render(screen: Screen, tileMap: GameMap): Unit = {
+    size.foreach(s => screen(s) = this(s).sc)
+  }
+
+  def render(screen: Screen, w: Point, sc: ScreenChar): Unit = screen(toScreen(w)) = sc
+}
+
+class CombatTracker(val world: World, val viewSize: Size) extends StateMachine with Actions {
+  def getViewOrigin(): Point = {
+    val offset = Point(viewSize.width/2, viewSize.height/2)
+    player.position - offset
+  }
+  def updateViewOrigin(): Unit = {
+    view.origin = getViewOrigin()
+  }
+  val view = new View(world.levelMap, viewSize, getViewOrigin())
+
   type StateType = ActionState
   def initialState: StateType = new InputAction()
 
@@ -38,11 +60,13 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
 
   var round: Int = 0
 
+  // world coordinates
   var mouse: Option[Point] = None
 
-  val pathFinder = new Dijkstra(world.viewPort, world.viewPort.size)
+  // path in world coordinates
+  val pathFinder = new Dijkstra(world.levelMap, view.size.width)
 
-  def agents: Seq[Agent] = world.agents.filter(_.hp >= 0)
+  def agents: Seq[Agent] = world.levelMap.agents.filter(_.hp >= 0)
   def player = world.player
 
   def update(elapsed: Int) = {
@@ -51,24 +75,27 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
   }
 
   def render(screen: Screen) = {
-    world.render(screen)
+    view.render(screen, world.levelMap)
     renderAgents(screen)
+    renderEntity(screen, player)
     currentState.render(screen)
+  }
+
+  def renderEntity(screen: Screen, entity: Entity) = {
+    view.render(screen, entity.position, entity.sc)
   }
 
   def renderAgents(screen: Screen) = {
     for (a <- agents) {
       // TODO: display range
-
       val los = lineOfSight(a.position, world.player.position)
-      world.renderAgent(screen, a, los.length)
-
+      renderEntity(screen, a)
     }
   }
 
-  def target(p: Point): Unit = {
-    val p0 = world.viewPort.toWorld(p)
-    currentState.target(p0)
+  // world coordinates
+  def target(w: Point): Unit = {
+    currentState.target(w)
   }
 
   def nextActionState(): ActionState = {
@@ -102,7 +129,7 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
 
   // uses neighbors in addition to current tile
   def lineOfSight(p: Point, p0: Point): Seq[Point] = {
-    for( n <- p0 :: world.viewPort.size.neighbors(p0, 1).toList ) {
+    for( n <- p0 :: p0.neighbors(p0, 1).toList ) {
       val line = lineOfSightSingle(p, n)
       if (line != Nil) return line
     }
@@ -113,7 +140,7 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
   protected def lineOfSightSingle(p: Point, p0: Point): Seq[Point] = {
     // TODO: optimization candidate
     val line = CombatTracker.bresenham(p, p0).toSeq
-    if (line.forall(world.viewPort(_).move)) line else Nil
+    if (line.forall(world.levelMap(_).move)) line else Nil
   }
 
   val actionOptions = List(
@@ -122,6 +149,7 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
     new AttackOption(player),
     new MoveOption(player))
 
+  // world coordinates
   def getAction(p: Point): Option[ActionOption] = {
     def getAction(target: Point, actions: List[ActionOption]): Option[ActionOption] = {
       actions match {
@@ -181,7 +209,7 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
         moves = pathFinder.moveCount(p, p0, move)
         if ((moves > 0) && (moves <= move))
         if agents.forall(_.position != p)
-      } world.viewPort.render(screen, p, moveChar)
+      } view.render(screen, p, moveChar)
     }
 
     def renderPath(screen: Screen, target: Point): Unit = {
@@ -193,13 +221,13 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
         val path = pathFinder.path(target, p0)
         val smoothPoints = smoothPathPoints(p0, path, Nil)
 
-        smoothPoints.foreach( world.viewPort.render(screen, _, pathChar) )
+        smoothPoints.foreach( view.render(screen, _, pathChar) )
       }
     }
   }
 
   def hasLineOfMovement(p: Point, p0: Point): Boolean = {
-    CombatTracker.bresenham(p, p0).forall(world.viewPort(_).move)
+    CombatTracker.bresenham(p, p0).forall(world.levelMap(_).move)
   }
 
   // returns smooth path up to point p0
@@ -233,6 +261,7 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
       smoothPath match {
         case x::xs =>
           action.entity.position = x
+          updateViewOrigin()
           smoothPath = xs
         case Nil => {
           action.complete()
@@ -266,7 +295,7 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
 
     def render(screen: Screen): Unit = {
       path match {
-        case p::ps => world.viewPort.render(screen, p, '*')
+        case p::ps => view.render(screen, p, '*')
         case Nil =>
       }
     }
