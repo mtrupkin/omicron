@@ -3,7 +3,7 @@ package me.mtrupkin.game.model
 import java.io._
 import java.nio.file.{StandardOpenOption, Path, Paths, Files}
 
-import me.mtrupkin.console.Screen
+import me.mtrupkin.console.{ScreenChar, Colors, RGB, Screen}
 import me.mtrupkin.core.{Matrix, Point, Size}
 import play.api.libs.json._
 import rexpaint.RexPaintImage
@@ -16,15 +16,42 @@ class ViewPort(val size: Size, var origin: Point, levelMap: LevelMap) extends Ti
   val levelName = levelMap.levelName
 
   def render(screen: Screen): Unit =
-    size.foreach(p => screen(p) = this(p).sc)
+    size.foreach(p => {
+      val world = toWorld(p)
+      screen(p) = this(world).sc
+    })
+  // in screen coordinates
+  def apply(p: Point): Tile = levelMap(toWorld(p))
+  // in screen coordinates
+  def move(p: Point): Boolean = levelMap.move(toWorld(p))
 
-  def apply(p: Point): Tile = levelMap(p + origin)
+  // in world coordinates
+  def explore(p: Point): Seq[Agent] = {
+    levelMap.explore(p: Point) match {
+      case Some((direction, agents: Seq[Agent])) => {
+        origin += Point( direction.x * (size.width/2 - 1), direction.y * (size.height/2 - 1))
+        agents
+      }
+      case _ => Nil
+    }
+  }
+  // in world coordinates
+  def render(screen: Screen, p0: Point, sc: ScreenChar): Unit = {
+    val p = toScreen(p0)
+    if (screen.size.in(p))
+      screen(p) = sc
+  }
 
-  def move(p: Point): Boolean = levelMap.move(p + origin)
+  def renderAgent(screen: Screen, agent: Entity, distance: Int): Unit = {
+    render(screen, agent.position, agent.sc)
+  }
+
+  def toScreen(p0: Point): Point = p0 - origin
+  def toWorld(p0: Point): Point = p0 + origin
 }
 
 class World (
-  val agents: Seq[Agent],
+  var agents: Seq[Agent],
   val player: Player,
   val viewPort: ViewPort,
   var time: Long = 0)  {
@@ -36,10 +63,15 @@ class World (
   def render(screen: Screen): Unit = {
     viewPort.render(screen)
 
-    renderAgent(screen, player)
+    renderAgent(screen, player, 0)
   }
 
-  def renderAgent(screen: Screen, agent: Entity): Unit = screen.write(agent.position, agent.sc)
+  def renderAgent(screen: Screen, agent: Entity, distance: Int): Unit = viewPort.renderAgent(screen, agent, distance)
+
+
+  def explore(p: Point): Unit = {
+    agents = agents ++ viewPort.explore(p)
+  }
 }
 
 case class EntityJS(name: String, position: Point, hp: Int)

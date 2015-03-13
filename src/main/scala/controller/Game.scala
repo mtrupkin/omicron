@@ -165,7 +165,8 @@ trait Game { self: Controller =>
     }
 
     def handleMouseMove(mouseEvent: sfxi.MouseEvent): Unit = {
-      for( p <- mouseToPoint(mouseEvent)) {
+      for( p0 <- mouseToPoint(mouseEvent)) {
+        val p = tracker.world.viewPort.toWorld(p0)
         infoPosText.setText(p)
         tracker.mouse = Some(p)
 

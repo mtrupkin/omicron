@@ -59,14 +59,17 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
   def renderAgents(screen: Screen) = {
     for (a <- agents) {
       // TODO: display range
-      if (lineOfSight(a.position, world.player.position) != Nil)
-        world.renderAgent(screen, a)
-      else
-        screen.write(a.position, a.sc.copy(fg = RGB(123, 123, 123)))
+
+      val los = lineOfSight(a.position, world.player.position)
+      world.renderAgent(screen, a, los.length)
+
     }
   }
 
-  def target(p: Point): Unit = currentState.target(p)
+  def target(p: Point): Unit = {
+    val p0 = world.viewPort.toWorld(p)
+    currentState.target(p0)
+  }
 
   def nextActionState(): ActionState = {
     if (player.ap > 0) new InputAction
@@ -178,7 +181,7 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
         moves = pathFinder.moveCount(p, p0, move)
         if ((moves > 0) && (moves <= move))
         if agents.forall(_.position != p)
-      } screen(p) = moveChar
+      } world.viewPort.render(screen, p, moveChar)
     }
 
     def renderPath(screen: Screen, target: Point): Unit = {
@@ -190,7 +193,7 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
         val path = pathFinder.path(target, p0)
         val smoothPoints = smoothPathPoints(p0, path, Nil)
 
-        smoothPoints.foreach(screen(_) = pathChar)
+        smoothPoints.foreach( world.viewPort.render(screen, _, pathChar) )
       }
     }
   }
@@ -263,7 +266,7 @@ class CombatTracker(val world: World) extends StateMachine with Actions {
 
     def render(screen: Screen): Unit = {
       path match {
-        case p::ps => screen.write(p, '*')
+        case p::ps => world.viewPort.render(screen, p, '*')
         case Nil =>
       }
     }

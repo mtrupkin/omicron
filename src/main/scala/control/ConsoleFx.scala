@@ -18,7 +18,7 @@ class ConsoleFx(val size: Size) extends Pane {
   setStyle("-fx-background-color: black;")
   val offsetX, offsetY = 1
 
-  val font = Font.font("Consolas", FontWeight.NORMAL, 18)
+  val font = Font.font("Consolas", FontWeight.NORMAL, 21)
 
   val charBounds = ConsoleFx.charBounds(font)
   val stacks = new Matrix[StackPane](size)

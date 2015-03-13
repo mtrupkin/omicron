@@ -46,42 +46,29 @@ trait Intro { self: Controller =>
       changeState(new GameController(new CombatTracker(world)))
     }
 
-    def loadImageLevel(levelName: String): (RexPaintImage, MutableTileMap) = {
-      val is = getClass.getResourceAsStream(s"/levels/$levelName.xp")
-      val image = RexPaintImage.read(levelName, is)
-      val level = TileMap.load(levelName, image.size, image.layers.head.matrix)
-      (image, level)
-    }
 
-    def loadLevel(levelName: String): (MutableTileMap, Seq[Agent]) = {
-      val (image, level) = loadImageLevel(levelName)
-
-      val agents = Entity.toEntities(image.layers(1).matrix)
-      (level, agents)
-    }
-
-    def loadStartLevel(levelName: String): (MutableTileMap, Player) = {
-      val (image, level) = loadImageLevel(levelName)
-      val player = Entity.toPlayer(image.layers(1).matrix)
-      (level, player)
-    }
 
     def handleNewGame(event: ActionEvent) = {
 
       // create world
-      val (startLevel, player) = loadStartLevel("start")
-      val (level2, agents2) = loadLevel("tile-2")
-      val (level3, agents3) = loadLevel("tile-3")
-
-      val agents = agents2 ++ agents3
+      val levelPosition2 = Point(1,0)
+      val levelPosition3 = Point(2,0)
+      val (startLevel, player) = TileMap.loadStartLevel("start")
+      val (level2, agents2) = TileMap.loadLevel("tile-2")
+      val (level3, agents3) = TileMap.loadLevel("tile-3")
 
       val levelSize = startLevel.size
       val levelMap = new LevelMap("mission-1", levelSize)
       levelMap.tileMaps(Points.Origin) = startLevel
-      levelMap.tileMaps(Point(1,0)) = level2
-      levelMap.tileMaps(Point(2,0)) = level3
+      levelMap.tileMaps(levelPosition2) = level2
+      levelMap.tileMaps(levelPosition3) = level3
 
       val viewPort = new ViewPort(Size(levelSize.width * 3, levelSize.height), Points.Origin, levelMap)
+
+
+
+      val agents = levelMap.toGlobalAgent(levelPosition2, agents2) ++ levelMap.toGlobalAgent(levelPosition3, agents3)
+
       val world = new World(agents, player, viewPort)
 
       World.write(world)

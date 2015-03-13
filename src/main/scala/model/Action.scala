@@ -93,6 +93,7 @@ trait Actions {
     def performAction(): Unit = {}
     def completeAction(): Unit =  {
       entity.ap -= 1
+      world.explore(player.position)
     }
   }
 

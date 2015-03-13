@@ -28,7 +28,7 @@ abstract class Entity(currentHP: Option[Int] = None, currentAP: Option[Int] = No
   def maxHP = 1 + (str + dex + int) * 10
   def maxAP = 2
 
-  def move: Int = 6 + floor(dex / 3)
+  def move: Int = 12 + floor(dex / 3)
   def range: Int = 4
 
   def melee: Combat = Combat((str + floor(dex/2) + floor(int/3)))
@@ -51,7 +51,8 @@ class Agent(
 
   def getAction(tracker: CombatTracker): Option[tracker.ActionOption] = {
     val los = tracker.lineOfSight(tracker.world.player.position, position)
-    if (los != Nil) return Some(new tracker.AttackOption(this) { defender = tracker.world.player}) else None
+//    if (los != Nil) return Some(new tracker.AttackOption(this) { defender = tracker.world.player}) else None
+    None
   }
 }
 
