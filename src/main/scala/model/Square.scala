@@ -30,7 +30,7 @@ class Tile(val name: String, val size: Size) extends GameMap {
   def update(p: Point, value: Square): Unit = squares(p.x)(p.y) = value
 }
 
-class Level(val name: String, val tileSize: Size) extends GameMap {
+class Level(val name: String, val tileSize: Size, val maxRadius: Int) extends GameMap {
   var agents: Seq[Agent] = Nil
   val tiles = new HashMap[Point, Tile]
 
@@ -81,12 +81,15 @@ class Level(val name: String, val tileSize: Size) extends GameMap {
   }
 
   def explore(tilePoint: Point): Tile = {
-    val n = Random.nextInt(6) + 1
-    val (tile, newAgents) = Tile.loadTile(s"tile-$n")
-    tiles(tilePoint) = tile
-    agents = agents ++ toWorldAgent(tilePoint, newAgents)
+    if ((Math.abs(tilePoint.x) <= maxRadius) && (Math.abs(tilePoint.y) <= maxRadius)) {
+      val n = Random.nextInt(6) + 1
+      val (tile, newAgents) = Tile.loadTile(s"tile-$n")
+      tiles(tilePoint) = tile
+      agents = agents ++ toWorldAgent(tilePoint, newAgents)
 
-    tile
+      tile
+    } else Tile.space
+
   }
 }
 
@@ -99,6 +102,12 @@ class Floor extends Square {
 class Wall(val sc: ScreenChar) extends Square {
   val name = "Wall"
   val move = false
+}
+
+class Space extends Square {
+  val name = "Space"
+  val move = false
+  var sc = ScreenChar(' ', fg = LightGrey)
 }
 
 object Square {
@@ -114,6 +123,12 @@ object Square {
 }
 
 object Tile {
+  val space: Tile = {
+    val tile = new Tile("Space", tileSize)
+    tileSize.foreach(p => tile(p) = new Space )
+    tile
+  }
+
   protected def readRexImage(name: String): RexPaintImage = {
     val is = getClass.getResourceAsStream(s"/tiles/$name.xp")
     RexPaintImage.read(name, is)
@@ -126,7 +141,6 @@ object Tile {
         tile.squares(x)(y) = t
       }
     }
-
     tile
   }
   

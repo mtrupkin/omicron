@@ -1,0 +1,25 @@
+{
+    "name" : "hull-left",
+    "position" : { "x" : -1, "y" : 0 }
+  }, {
+    "name" : "hull-ul",
+    "position" : { "x" : -1, "y" : -1 }
+  }, {
+    "name" : "hull-upper",
+    "position" : { "x" : 0, "y" : -1 }
+  }, {
+    "name" : "hull-ur",
+    "position" : { "x" : 1, "y" : -1 }
+  }, {
+    "name" : "hull-right",
+    "position" : { "x" : 1, "y" : 0 }
+  }, {
+    "name" : "hull-lr",
+    "position" : { "x" : 1, "y" : 1 }
+  }, {
+    "name" : "hull-lower",
+    "position" : { "x" : 0, "y" : 1 }
+  }, {
+    "name" : "hull-ll",
+    "position" : { "x" : -1, "y" : 1 }
+  } 

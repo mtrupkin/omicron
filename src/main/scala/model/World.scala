@@ -23,37 +23,16 @@ class World (
   def update(elapsed: Int) {
     time += elapsed
   }
-
-//  def render(screen: Screen): Unit = {
-//    size.foreach(p => {
-//      val world = toWorld(p)
-//      screen(p) = this(world).sc
-//    })
-//
-//    renderAgent(screen, player, 0)
-//  }
-
-//  def renderAgent(screen: Screen, agent: Entity, distance: Int): Unit = viewPort.renderAgent(screen, agent, distance)
-
-
-  def explore(p: Point): Unit = {
-//    levelMap.explore(p: Point) match {
-//      case Some((direction, agents: Seq[Agent])) => {
-//        origin += Point( direction.x * (size.width/2 - 1), direction.y * (size.height/2 - 1))
-//        agents
-//      }
-//      case _ => Nil
-//    }
-//    agents = agents ++ viewPort.explore(p)
-  }
 }
 
 case class EntityJS(name: String, position: Point, hp: Int)
 case class TileJS(name: String, position: Point)
-
-case class WorldJS(tiles: Seq[TileJS], agents: Seq[EntityJS], player: EntityJS, time: Long)
+case class WorldJS(name: String, radius:Int, tiles: Seq[TileJS], agents: Seq[EntityJS], player: EntityJS, time: Long)
+case class MissionJS(name: String, description: String, radius:Int, start: TileJS, tiles: Seq[TileJS])
 
 object World {
+  val tileSize = Size(25, 25)
+  val viewSize = Size(tileSize.width*3, tileSize.height)
   val saveDirectory = Paths.get("./save")
   val savePath = saveDirectory.resolve("game.json")
 
@@ -61,17 +40,73 @@ object World {
   implicit val formatTile = Json.format[TileJS]
   implicit val formatAgent = Json.format[EntityJS]
   implicit val formatWorld = Json.format[WorldJS]
+  implicit val formatMission = Json.format[MissionJS]
+
+  def loadMission(name: String): World = {
+    val is = getClass.getResourceAsStream(s"/missions/$name.json")
+    val json = Json.parse(is)
+    val missionJS = Json.fromJson[MissionJS](json).get
+    val level = new Level(missionJS.name, tileSize, missionJS.radius)
+
+    val (startTile, player) = Tile.loadStartTile(missionJS.start.name)
+    level.tiles(missionJS.start.position) = startTile
+//    missionJS.tiles.foreach(t => level.tiles(t.position) = Tile.loadTile(t.name))
+    for {
+      tileJS <- missionJS.tiles
+      position = tileJS.position
+      (tile, agents) = Tile.loadTile(tileJS.name)
+    }  {
+      level.tiles(tileJS.position) = tile
+      level.agents = level.agents ++ level.toWorldAgent(position, agents)
+    }
+
+    addBorderTiles(level)
+
+    new World(player, level)
+  }
+
+  def addBorderTiles(level: Level): Unit = {
+    val r = level.maxRadius - 1
+    val max = level.maxRadius
+
+    val left = Tile.load("hull-left")
+    val right = Tile.load("hull-right")
+    val upper = Tile.load("hull-upper")
+    val lower = Tile.load("hull-lower")
+
+    val ul = Tile.load("hull-ul")
+    val ur = Tile.load("hull-ur")
+    val lr = Tile.load("hull-lr")
+    val ll = Tile.load("hull-ll")
+
+    for {
+      x <- -r to r
+    } {
+      level.tiles((x, -max)) = upper
+      level.tiles((x, max)) = lower
+    }
+
+    for {
+      y <- -r to r
+    } {
+      level.tiles((-max, y)) = left
+      level.tiles((max, y)) = right
+    }
+
+    level.tiles((-max, -max)) = ul
+    level.tiles((max, -max)) = ur
+    level.tiles((max, max)) = lr
+    level.tiles((-max, max)) = ll
+  }
 
   def read(): World = {
-    val (startLevel, _) = Tile.loadStartTile("start")
     val is = Files.newInputStream(savePath)
     val json = Json.parse(is)
     val worldJS = Json.fromJson[WorldJS](json).get
-    val level = new Level("mission-1", startLevel.size)
+    val level = new Level(worldJS.name, tileSize, worldJS.radius)
     level.agents = worldJS.agents.map(a => toAgent(a))
 
     worldJS.tiles.foreach(t => level.tiles(t.position) = Tile.load(t.name))
-
 
     new World(toPlayer(worldJS.player), level, worldJS.time)
   }
@@ -81,7 +116,7 @@ object World {
       (p, tileMap) <- world.levelMap.tiles
     } yield TileJS(tileMap.name, p)
 
-    val worldJS = WorldJS(tilesJS.toSeq, world.levelMap.agents.map(toAgentJS(_)), toPlayerJS(world.player), world.time)
+    val worldJS = WorldJS(world.levelMap.name, world.levelMap.maxRadius, tilesJS.toSeq, world.levelMap.agents.map(toAgentJS(_)), toPlayerJS(world.player), world.time)
     val json = Json.toJson(worldJS)
 
     Files.createDirectories(saveDirectory)

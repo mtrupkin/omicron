@@ -1,0 +1,10 @@
+{
+  "name": "Ambushed",
+  "description": "Find Auxilary-Bridge",
+  "radius": 2,
+  "start" : { 
+  	"name" : "ship-start",
+  	"position" : {"x" : 0, "y" : 0 }
+  },
+  "tiles" : [ ]
+}

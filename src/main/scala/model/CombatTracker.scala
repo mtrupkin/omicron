@@ -30,6 +30,7 @@ class CombatTracker(val world: World, val viewSize: Size) extends StateMachine w
     val offset = Point(viewSize.width/2, viewSize.height/2)
     player.position - offset
   }
+
   def updateViewOrigin(): Unit = {
     view.origin = getViewOrigin()
   }
@@ -55,7 +56,7 @@ class CombatTracker(val world: World, val viewSize: Size) extends StateMachine w
   }
 
   def end: Boolean = {
-    (agents == Nil) || (player.hp < 0)
+    (player.hp < 0)
   }
 
   var round: Int = 0

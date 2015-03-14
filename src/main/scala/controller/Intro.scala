@@ -36,36 +36,19 @@ trait Intro { self: Controller =>
 
     def handleContinueGame(event: ActionEvent) = {
       val world = World.read()
-      val (startLevel, _) = Tile.loadStartTile("start")
 
-      changeState(new GameController(new CombatTracker(world, Size(startLevel.size.width*3, startLevel.size.height))))
+      changeState(new GameController(new CombatTracker(world, World.viewSize)))
     }
 
 
 
     def handleNewGame(event: ActionEvent) = {
-
       // create world
-      val levelPosition2 = Point(1,0)
-      val levelPosition3 = Point(2,0)
-      val (startLevel, player) = Tile.loadStartTile("start")
-      val (level2, agents2) = Tile.loadTile("tile-2")
-      val (level3, agents3) = Tile.loadTile("tile-3")
-
-      val levelSize = startLevel.size
-      val levelMap = new Level("mission-1", levelSize)
-      levelMap.tiles(Points.Origin) = startLevel
-      levelMap.tiles(levelPosition2) = level2
-      levelMap.tiles(levelPosition3) = level3
-
-      levelMap.agents = levelMap.toWorldAgent(levelPosition2, agents2) ++ levelMap.toWorldAgent(levelPosition3, agents3)
-
-      val world = new World(player, levelMap)
+      val world = World.loadMission("mission-1")
 
       World.write(world)
 
-      val viewSize = Size(levelSize.width * 3, levelSize.height)
-      changeState(new GameController(new CombatTracker(world, viewSize)))
+      changeState(new GameController(new CombatTracker(world, World.viewSize)))
     }
 
     def handleOptions(event: ActionEvent) = {
